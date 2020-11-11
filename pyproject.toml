@@ -1,0 +1,38 @@
+[tool.poetry]
+name = "pycask"
+version = "0.1.0"
+description = ""
+authors = ["huangkai <h1770360848@outlook.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.961"
+pytest = "^7.1.2"
+coverage = "^6.4.2"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.black]
+target-version = ['py39']
+skip-string-normalization = true
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+no_implicit_optional = true
+disallow_untyped_defs = true
+
+[[tool.poetry.source]]
+name = "tsinghua"
+url = "https://pypi.tuna.tsinghua.edu.cn/simple/"
+default = true
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
