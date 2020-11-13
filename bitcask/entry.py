@@ -1,37 +1,64 @@
+import struct
+import zlib
 from dataclasses import dataclass
-from typing import Final, final
+from typing import Final, Tuple
 
-__all__ = ['EntryHeader']
+__all__ = ['Entry']
 
 # The entry header format look like this:
 #
-#     ┌─────────┬───────────────┬──────────────┬────────────────┐
-#     │ crc(4B) │ timestamp(4B) │ key_size(4B) │ value_size(4B) │
-#     └─────────┴───────────────┴──────────────┴────────────────┘
+#   ┌─────────┬───────────────┬──────────────┬────────────────┐
+#   │ crc(4B) │ timestamp(4B) │ key_size(4B) │ value_size(4B) │
+#   └─────────┴───────────────┴──────────────┴────────────────┘
 #
 # `!` - represents network(= big-endian) byte order.
 # `I` - represents unsigned int (4 bytes).
 #
 # See the :class: `EntryHeader` for the implementation.
-HEADER_FORMAT: Final[str] = '!IIII'
+#
+#
+# Because the crc field don't join the cyclic redundancy check,
+# the entry crc header format look like this:
+#   ┌───────────────┬──────────────┬────────────────┐
+#   │ timestamp(4B) │ key_size(4B) │ value_size(4B) │
+#   └───────────────┴──────────────┴────────────────┘
+HEADER_FORMAT: Final[str] = '!3I'
+CRC_FORMAT: Final[str] = '!I'
 
 # These four fields occupies `4 + 4 + 4 + 4 = 16` bytes.
 HEADER_SIZE: Final[int] = 16
+HEADER_INDEX: Final[int] = 4
 
 
-@final
-@dataclass(frozen=True)
-class EntryHeader:
-    """The log entry header."""
+@dataclass
+class Entry:
+    """The log entry."""
 
-    #: Cyclic redundancy check (CRC) field is an error-detecting code.
-    crc: int
+    #: The entry's key.
+    key: str
 
-    #: Timestamp field stores the time the record we inserted in unix epoch seconds.
+    #: The entry's value.
+    value: str
+
+    #: Timestamp at which wrote the KV pair to the disk.
+    #: The value is current time in seconds since the epoch.
     timestamp: int
 
-    #: Key size field stores the length of bytes occupied by the key.
-    key_size: int
+    def encode(self) -> Tuple[bytes, int]:
+        """Encode the entry into bytes.
 
-    #: Value size field stores the length of bytes occupied by the value.
-    value_size: int
+        Returns:
+            The byte object and the size of encoded bytes.
+
+        """
+        header_bytes: bytearray = bytearray(HEADER_SIZE)
+        header_bytes[HEADER_INDEX:] = struct.pack(
+            HEADER_FORMAT, self.timestamp, len(self.key), len(self.value)
+        )
+        payload: bytes = f'{self.key}{self.value}'.encode()
+
+        # Cyclic redundancy check (CRC) field is an error-detecting code.
+        # It uses all the other fields to generate checksum.
+        crc: int = zlib.crc32(header_bytes[HEADER_INDEX:] + payload)
+        header_bytes[:HEADER_INDEX] = struct.pack(CRC_FORMAT, crc)
+        return bytes(header_bytes) + payload, len(header_bytes) + len(payload)
