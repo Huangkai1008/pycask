@@ -5,7 +5,7 @@ from typing import Final, Tuple
 
 __all__ = ['Entry']
 
-# The entry header format look like this:
+# The entry header format looks like this:
 #
 #   ┌─────────┬───────────────┬──────────────┬────────────────┐
 #   │ crc(4B) │ timestamp(4B) │ key_size(4B) │ value_size(4B) │
@@ -58,7 +58,7 @@ class Entry:
         payload: bytes = f'{self.key}{self.value}'.encode()
 
         # Cyclic redundancy check (CRC) field is an error-detecting code.
-        # It uses all the other fields to generate checksum.
+        # It uses all the other fields to generate the checksum.
         crc: int = zlib.crc32(header_bytes[HEADER_INDEX:] + payload)
         header_bytes[:HEADER_INDEX] = struct.pack(CRC_FORMAT, crc)
         return bytes(header_bytes) + payload, len(header_bytes) + len(payload)

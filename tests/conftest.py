@@ -1,3 +1,5 @@
+from typing import Generator
+
 import pytest
 
 entry_encode_testcases = [
@@ -17,5 +19,5 @@ entry_encode_testcases = [
 
 
 @pytest.fixture
-def entry_encode_test_cases():
+def entry_encode_test_cases() -> Generator[list, None, None]:
     yield entry_encode_testcases

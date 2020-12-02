@@ -20,6 +20,8 @@ class TestEncodeEntry:
     ]
 
     @pytest.mark.parametrize('key,value,timestamp,expected', testcases)
-    def test_encode_entry(self, key, value, timestamp, expected):
+    def test_encode_entry(
+        self, key: str, value: str, timestamp: int, expected: tuple
+    ) -> None:
         entry = Entry(key, value, timestamp)
         assert entry.encode() == expected
