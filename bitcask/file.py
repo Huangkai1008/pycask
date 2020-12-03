@@ -1,6 +1,8 @@
 import os
 from pathlib import Path
-from typing import BinaryIO
+from typing import BinaryIO, Union
+
+from bitcask.entry import Entry
 
 __all__ = ['LogFile']
 
@@ -28,7 +30,7 @@ class LogFile:
 
     def __init__(
         self,
-        dir_name: str,
+        dir_name: Union[str, Path],
         file_id: int = 0,
     ) -> None:
         self._file_id: int = file_id
@@ -39,7 +41,43 @@ class LogFile:
     @property
     def file_id(self) -> int:
         """Returns the ID of current file."""
-        return self.file_id
+        return self._file_id
+
+    def get_entry_value(self, offset: int, entry_size: int) -> str:
+        """Get the value of entry with given offset and entry_size."""
+        return self.read_log_entry(offset, entry_size).value
+
+    def append(self, key: str, value: str, timestamp: int) -> int:
+        """Append entry to the log file.
+
+        Args:
+            key: The entry's key.
+            value: The entry's value.
+            timestamp: The given timestamp.
+
+        Returns:
+            The size of entry in bytes.
+
+        """
+        entry: Entry = Entry(key, value, timestamp)
+        data, entry_size = entry.encode()
+        self.write_log_entry(data)
+        return entry_size
+
+    def read_log_entry(self, offset: int, entry_size: int) -> Entry:
+        """Read a LogEntry from log file at offset."""
+        self.file.seek(offset)
+        data: bytes = self.file.read(entry_size)
+        entry: Entry = Entry.decode(data)
+        return entry
+
+    def write_log_entry(self, data: bytes) -> None:
+        """Write log entry(bytes format) to log file."""
+        self.file.write(data)
+        self.file.flush()
+        os.fsync(self.file.fileno())
+        # Update last write position so that next record can be written from this point.
+        self.write_position += len(data)
 
     def close(self) -> None:
         """Close the file.
@@ -57,5 +95,5 @@ class LogFile:
         del self.file
 
     @staticmethod
-    def _get_file_name(dir_name: str, file_id: int) -> str:
+    def _get_file_name(dir_name: Union[str, Path], file_id: int) -> str:
         return f'{dir_name}/cask.db.{file_id}'
