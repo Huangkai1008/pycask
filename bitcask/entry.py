@@ -1,7 +1,7 @@
 import struct
 import zlib
 from dataclasses import dataclass
-from typing import Final, Tuple
+from typing import Final, NamedTuple, Tuple
 
 __all__ = ['Entry']
 
@@ -30,6 +30,13 @@ HEADER_SIZE: Final[int] = 16
 HEADER_INDEX: Final[int] = 4
 
 
+class EntryHeader(NamedTuple):
+    crc: int
+    timestamp: int
+    key_size: int
+    value_size: int
+
+
 @dataclass
 class Entry:
     """The log entry."""
@@ -55,10 +62,32 @@ class Entry:
         header_bytes[HEADER_INDEX:] = struct.pack(
             HEADER_FORMAT, self.timestamp, len(self.key), len(self.value)
         )
-        payload: bytes = f'{self.key}{self.value}'.encode()
+        payload_bytes: bytes = f'{self.key}{self.value}'.encode()
 
         # Cyclic redundancy check (CRC) field is an error-detecting code.
         # It uses all the other fields to generate the checksum.
-        crc: int = zlib.crc32(header_bytes[HEADER_INDEX:] + payload)
+        crc: int = zlib.crc32(header_bytes[HEADER_INDEX:] + payload_bytes)
         header_bytes[:HEADER_INDEX] = struct.pack(CRC_FORMAT, crc)
-        return bytes(header_bytes) + payload, len(header_bytes) + len(payload)
+        return bytes(header_bytes) + payload_bytes, len(header_bytes) + len(
+            payload_bytes
+        )
+
+    @classmethod
+    def decode_header(cls, data: bytes) -> EntryHeader:
+        """Decodes the bytes into header."""
+        header_bytes: bytes = data[:HEADER_SIZE]
+        (crc,) = struct.unpack(CRC_FORMAT, header_bytes[:HEADER_INDEX])
+        timestamp, key_size, value_size = struct.unpack(
+            HEADER_FORMAT, header_bytes[HEADER_INDEX:]
+        )
+        return EntryHeader(crc, timestamp, key_size, value_size)
+
+    @classmethod
+    def decode(cls, data: bytes) -> 'Entry':
+        """Decodes the bytes into `Entry` instance."""
+        header: EntryHeader = cls.decode_header(data)
+        key_bytes: bytes = data[HEADER_SIZE: HEADER_SIZE + header.key_size]
+        value_bytes: bytes = data[HEADER_SIZE + header.key_size:]
+        key: str = key_bytes.decode()
+        value: str = value_bytes.decode()
+        return Entry(key, value, header.timestamp)
