@@ -1,7 +1,9 @@
+import time
 from pathlib import Path
 from typing import Generator, Optional
 
 from bitcask.file import LogFile
+from bitcask.key_dir import KeyDir, KeyEntry
 
 __all__ = ['DataStore']
 
@@ -23,7 +25,7 @@ class DataStore:
 
     def __init__(self, dir_name: str) -> None:
         self.dir_name: str = dir_name
-        self.key_dir: dict = dict()
+        self.key_dir: KeyDir = dict()
         self.active_datafile: Optional[LogFile] = None
 
         # Initialise data directory.
@@ -47,7 +49,14 @@ class DataStore:
             The value if key exists, `None` otherwise.
 
         """
-        ...
+        key_entry: Optional[KeyEntry] = self.key_dir.get(key)
+        if not key_entry:
+            return None
+
+        # FIXME: Only one data file at first.
+        return self.active_datafile.get_entry_value(
+            key_entry.offset, key_entry.entry_size
+        )
 
     def put(self, key: str, value: str) -> None:
         """Store a key and value in datastore.
@@ -57,7 +66,19 @@ class DataStore:
             value: The value to store.
 
         """
-        ...
+        # Persistent data to disk.
+        timestamp = int(time.time())
+        #: Note: get the write position before data is written to disk.
+        offset: int = self.active_datafile.write_position
+        entry_size: int = self.active_datafile.append(key, value, timestamp)
+
+        # Update `KeyDir` if the key-value pair stored to disk successfully.
+        self.key_dir[key] = KeyEntry(
+            self.active_datafile.file_id,
+            offset,
+            entry_size,
+            timestamp,
+        )
 
     def delete(self, key: str) -> None:
         """Delete a key from datastore.
