@@ -1,6 +1,8 @@
+from pathlib import Path
 from typing import Generator
 
 import pytest
+from _pytest.tmpdir import TempPathFactory
 
 entry_encode_testcases = [
     (
@@ -21,3 +23,9 @@ entry_encode_testcases = [
 @pytest.fixture
 def entry_encode_test_cases() -> Generator[list, None, None]:
     yield entry_encode_testcases
+
+
+@pytest.fixture(scope='session')
+def data_dir(tmp_path_factory: TempPathFactory) -> Path:
+    data_dir = tmp_path_factory.mktemp('data-dir')
+    return data_dir
