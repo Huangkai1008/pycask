@@ -1,3 +1,4 @@
+# mypy: no-strict-optional
 import time
 from pathlib import Path
 from typing import Generator, Optional
@@ -97,7 +98,7 @@ class DataStore:
         Yields: The next key in the range of all keys.
 
         """
-        ...
+        yield from self.key_dir.keys()
 
     def __getitem__(self, key: str) -> Optional[str]:
         return self.get(key)
@@ -133,4 +134,4 @@ class DataStore:
         contents of the file read.
 
         """
-        ...
+        self.key_dir = self.active_datafile.get_key_dir()

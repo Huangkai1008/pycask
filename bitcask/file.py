@@ -2,7 +2,8 @@ import os
 from pathlib import Path
 from typing import BinaryIO, Union
 
-from bitcask.entry import Entry
+from bitcask.entry import HEADER_SIZE, Entry
+from bitcask.key_dir import KeyDir, KeyEntry
 
 __all__ = ['LogFile']
 
@@ -46,6 +47,29 @@ class LogFile:
     def get_entry_value(self, offset: int, entry_size: int) -> str:
         """Get the value of entry with given offset and entry_size."""
         return self.read_log_entry(offset, entry_size).value
+
+    def get_key_dir(self) -> KeyDir:
+        """Get key dir from the current file."""
+        key_dir: KeyDir = dict()
+        with open(self.file_name, 'rb') as f:
+            offset: int = 0
+            while header_bytes := f.read(HEADER_SIZE):
+                entry_header = Entry.decode_header(header_bytes)
+                key_bytes: bytes = f.read(entry_header.key_size)
+                _ = f.read(entry_header.value_size)
+                key: str = key_bytes.decode()
+                entry_size: int = (
+                    entry_header.key_size + entry_header.value_size + HEADER_SIZE
+                )
+                key_entry: KeyEntry = KeyEntry(
+                    self.file_id,
+                    offset,
+                    entry_size,
+                    entry_header.timestamp,
+                )
+                offset += entry_size
+                key_dir[key] = key_entry
+        return key_dir
 
     def append(self, key: str, value: str, timestamp: int) -> int:
         """Append entry to the log file.

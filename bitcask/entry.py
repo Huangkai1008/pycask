@@ -3,7 +3,7 @@ import zlib
 from dataclasses import dataclass
 from typing import Final, NamedTuple, Tuple
 
-__all__ = ['Entry']
+__all__ = ['Entry', 'HEADER_SIZE']
 
 # The entry header format looks like this:
 #
@@ -86,8 +86,8 @@ class Entry:
     def decode(cls, data: bytes) -> 'Entry':
         """Decodes the bytes into `Entry` instance."""
         header: EntryHeader = cls.decode_header(data)
-        key_bytes: bytes = data[HEADER_SIZE: HEADER_SIZE + header.key_size]
-        value_bytes: bytes = data[HEADER_SIZE + header.key_size:]
+        key_bytes: bytes = data[HEADER_SIZE : HEADER_SIZE + header.key_size]
+        value_bytes: bytes = data[HEADER_SIZE + header.key_size :]
         key: str = key_bytes.decode()
         value: str = value_bytes.decode()
         return Entry(key, value, header.timestamp)
