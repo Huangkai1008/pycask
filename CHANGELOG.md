@@ -2,6 +2,21 @@
 ## [Unreleased]
 
 
+<a name="v0.3.0"></a>
+## [v0.3.0] - 2020-12-06
+### Features
+- **storage:** support `delete` and `in` operations
+
+
+<a name="v0.2.1"></a>
+## [v0.2.1] - 2020-12-06
+### Bug Fixes
+- rename package
+
+### Features
+- **storage:** support init from exist files
+
+
 <a name="v0.2.0"></a>
 ## [v0.2.0] - 2020-12-03
 ### Features
@@ -19,5 +34,7 @@
 - init commit
 
 
-[Unreleased]: https://github.com/Huangkai1008/pycask/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Huangkai1008/pycask/compare/v0.3.0...HEAD
+[v0.3.0]: https://github.com/Huangkai1008/pycask/compare/v0.2.1...v0.3.0
+[v0.2.1]: https://github.com/Huangkai1008/pycask/compare/v0.2.0...v0.2.1
 [v0.2.0]: https://github.com/Huangkai1008/pycask/compare/v0.1.0...v0.2.0
