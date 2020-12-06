@@ -3,8 +3,8 @@ import time
 from pathlib import Path
 from typing import Generator, Optional
 
-from bitcask.file import LogFile
-from bitcask.key_dir import KeyDir, KeyEntry
+from pycask.file import LogFile
+from pycask.key_dir import KeyDir, KeyEntry
 
 __all__ = ['DataStore']
 

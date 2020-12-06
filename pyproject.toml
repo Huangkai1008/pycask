@@ -1,9 +1,23 @@
 [tool.poetry]
 name = "pycask"
-version = "0.1.0"
-description = ""
-authors = ["huangkai <h1770360848@outlook.com>"]
+version = "0.2.1"
+description = "A Log-Structured KV Store based on bitcask, written in Python."
 license = "MIT"
+authors = ["huangkai <h1770360848@outlook.com>"]
+maintainers = ["huangkai <h1770360848@outlook.com>"]
+readme = "README.md"
+repository = "https://github.com/Huangkai1008/pycask"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Database"
+]
+packages = [
+    { include = "pycask" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"

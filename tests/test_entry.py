@@ -1,6 +1,6 @@
 import pytest
 
-from bitcask.entry import Entry
+from pycask.entry import Entry
 
 
 class TestEncodeEntry:

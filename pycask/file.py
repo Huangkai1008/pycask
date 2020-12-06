@@ -2,8 +2,8 @@ import os
 from pathlib import Path
 from typing import BinaryIO, Union
 
-from bitcask.entry import HEADER_SIZE, Entry
-from bitcask.key_dir import KeyDir, KeyEntry
+from pycask.entry import HEADER_SIZE, Entry
+from pycask.key_dir import KeyDir, KeyEntry
 
 __all__ = ['LogFile']
 

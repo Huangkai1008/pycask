@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from bitcask.file import LogFile
+from pycask.file import LogFile
 
 
 class TestCreateLogFile:
