@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import BinaryIO, Union
 
-from pycask.entry import HEADER_SIZE, Entry
+from pycask.entry import HEADER_SIZE, Entry, EntryType
 from pycask.key_dir import KeyDir, KeyEntry
 
 __all__ = ['LogFile']
@@ -71,19 +71,32 @@ class LogFile:
                 key_dir[key] = key_entry
         return key_dir
 
-    def append(self, key: str, value: str, timestamp: int) -> int:
+    def append(
+        self,
+        key: str,
+        value: str,
+        timestamp: int,
+        typ: int = EntryType.NORMAL.value,
+    ) -> int:
         """Append entry to the log file.
 
         Args:
             key: The entry's key.
             value: The entry's value.
             timestamp: The given timestamp.
+            typ: The entry's type.
 
         Returns:
             The size of entry in bytes.
 
         """
-        entry: Entry = Entry(key, value, timestamp)
+        entry: Entry = Entry(key, value, timestamp, typ=typ)
+        data, entry_size = entry.encode()
+        self.write_log_entry(data)
+        return entry_size
+
+    def delete(self, key: str, timestamp: int) -> int:
+        entry: Entry = Entry(key, '', timestamp, typ=EntryType.DELETED.value)
         data, entry_size = entry.encode()
         self.write_log_entry(data)
         return entry_size

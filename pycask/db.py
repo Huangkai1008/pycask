@@ -90,7 +90,11 @@ class DataStore:
             key: The key to delete.
 
         """
-        ...
+        timestamp = int(time.time())
+        self.active_datafile.delete(key, timestamp)
+
+        # Delete key in the `KeyDir`.
+        self.key_dir.pop(key)
 
     def keys(self) -> Generator[str, None, None]:
         """Generate all keys in datastore.
@@ -108,6 +112,9 @@ class DataStore:
 
     def __delitem__(self, key: str) -> None:
         return self.delete(key)
+
+    def __contains__(self, key: str) -> bool:
+        return key in self.key_dir
 
     def _init_data_dir(self) -> None:
         """Initialise the data directory.
