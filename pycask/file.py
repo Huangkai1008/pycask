@@ -1,11 +1,13 @@
 import os
 from pathlib import Path
-from typing import BinaryIO, Union
+from typing import IO, Final, Tuple, Union
 
 from pycask.entry import HEADER_SIZE, Entry, EntryType
 from pycask.key_dir import KeyDir, KeyEntry
 
-__all__ = ['LogFile']
+__all__ = ['LogFile', 'LOG_FILE_PREFIX']
+
+LOG_FILE_PREFIX: Final[str] = 'cask.db'
 
 
 class LogFile:
@@ -30,13 +32,11 @@ class LogFile:
     """
 
     def __init__(
-        self,
-        dir_name: Union[str, Path],
-        file_id: int = 0,
+        self, dir_name: Union[str, Path], file_id: int = 0, mode: str = 'a+b'
     ) -> None:
         self._file_id: int = file_id
         self.file_name: str = self._get_file_name(dir_name, file_id)
-        self.file: BinaryIO = open(self.file_name, 'a+b')
+        self.file: IO[bytes] = open(self.file_name, mode)
         self.write_position: int = Path(self.file_name).stat().st_size
 
     @property
@@ -68,17 +68,20 @@ class LogFile:
                     entry_header.timestamp,
                 )
                 offset += entry_size
-                key_dir[key] = key_entry
+                if entry_header.typ == EntryType.NORMAL.value:
+                    key_dir[key] = key_entry
+
         return key_dir
 
-    def append(
-        self,
+    @classmethod
+    def encode_entry(
+        cls,
         key: str,
         value: str,
         timestamp: int,
         typ: int = EntryType.NORMAL.value,
-    ) -> int:
-        """Append entry to the log file.
+    ) -> Tuple[bytes, int]:
+        """Encode entry into bytes.
 
         Args:
             key: The entry's key.
@@ -87,19 +90,21 @@ class LogFile:
             typ: The entry's type.
 
         Returns:
-            The size of entry in bytes.
+            The byte object and the size of entry in bytes.
 
         """
         entry: Entry = Entry(key, value, timestamp, typ=typ)
         data, entry_size = entry.encode()
-        self.write_log_entry(data)
-        return entry_size
+        return data, entry_size
 
-    def delete(self, key: str, timestamp: int) -> int:
-        entry: Entry = Entry(key, '', timestamp, typ=EntryType.DELETED.value)
-        data, entry_size = entry.encode()
+    def append(self, data: bytes) -> None:
+        """Append entry bytes to the log file.
+
+        Args:
+            data: The entry bytes.
+
+        """
         self.write_log_entry(data)
-        return entry_size
 
     def read_log_entry(self, offset: int, entry_size: int) -> Entry:
         """Read a LogEntry from log file at offset."""
@@ -133,4 +138,4 @@ class LogFile:
 
     @staticmethod
     def _get_file_name(dir_name: Union[str, Path], file_id: int) -> str:
-        return f'{dir_name}/cask.db.{file_id}'
+        return f'{dir_name}/{LOG_FILE_PREFIX}.{file_id}'
