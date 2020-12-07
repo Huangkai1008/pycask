@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pycask"
-version = "0.3.0"
+version = "0.4.0"
 description = "A Log-Structured KV Store based on bitcask, written in Python."
 license = "MIT"
 authors = ["huangkai <h1770360848@outlook.com>"]
