@@ -34,10 +34,15 @@ class DataStore:
         _active_datafile:
             The active data file accepts all write requests.
 
+        _archived_datafiles:
+            The non-active (i.e. immutable) files accepts read requests only.
+
     Keyword Args:
-        options: See more in :class:`Options`
+        options: See more in :class:`Options`.
 
     """
+
+    MERGE_FILE_START_ID = -1
 
     def __init__(self, dir_name: str, **options: Union[Any, Options]) -> None:
         self._dir_name: str = dir_name
@@ -158,7 +163,7 @@ class DataStore:
         for datafile in datafiles:
             file_id: int = int(datafile.name.split('.')[-1])
             file_ids.append(file_id)
-        # The newer one has a larger number
+        # The newer one has a larger number.
         file_ids.sort()
 
         if file_ids:
@@ -197,6 +202,7 @@ class DataStore:
             self._active_datafile.write_position + entry_size
             > self.log_file_threshold_size
         ):
+            self._active_datafile.close()
             self._archived_datafiles.append(self._active_datafile)
             self._active_datafile = LogFile(
                 self._dir_name, self._active_datafile.file_id + 1
@@ -207,7 +213,48 @@ class DataStore:
         self._active_datafile.append(data)
         return offset
 
+    def merge(self) -> None:
+        """Merge archived data files.
 
-db = DataStore('.', log_file_threshold_size=1000)
+        Iterates over all non-active (i.e. immutable) files
+        and produces as output a set of data files containing only the live
+        or latest versions of each present key.
 
-db.get('hello')
+        """
+        archived_datafiles: List[LogFile] = self._archived_datafiles
+        merge_file_ids: List[int] = [self.MERGE_FILE_START_ID]
+        merge_file: LogFile = LogFile(self._dir_name, self.MERGE_FILE_START_ID)
+        for data_file in archived_datafiles:
+            for entry, offset in data_file:
+                key_entry: KeyEntry = self._key_dir.get(entry.key)
+                if (
+                    key_entry
+                    and key_entry.file_id == data_file.file_id
+                    and key_entry.offset == offset
+                ):
+                    data, entry_size = entry.encode()
+                    if (
+                        merge_file.write_position + entry_size
+                        > self.log_file_threshold_size
+                    ):
+                        # Switch to new merge file if the size meets the threshold.
+                        # Close last merge file first.
+                        merge_file.close()
+                        merge_file_id: int = merge_file_ids[-1] - 1
+                        merge_file_ids.append(merge_file_id)
+                        merge_file = LogFile(self._dir_name, merge_file_id)
+                    merge_file.append(data)
+
+        merge_file.close()
+
+        for data_file in archived_datafiles:
+            data_file.delete()
+
+        # Rename all merge files.
+        # The rename file id is `abs(old_file_id) - 1`.
+        for merge_file_id in merge_file_ids:
+            file_name: str = LogFile.get_file_name(self._dir_name, merge_file_id)
+            path: Path = Path(file_name)
+            prefix, file_id = file_name.rsplit('.', maxsplit=1)
+            new_file_id = abs(int(file_id)) - 1
+            path.rename(f'{prefix}.{new_file_id}')

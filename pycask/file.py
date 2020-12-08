@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
-from typing import IO, Final, Tuple, Union
+from types import TracebackType
+from typing import IO, Final, Generator, Optional, Tuple, Type, Union
 
 from pycask.entry import HEADER_SIZE, Entry, EntryType
 from pycask.key_dir import KeyDir, KeyEntry
@@ -35,7 +36,8 @@ class LogFile:
         self, dir_name: Union[str, Path], file_id: int = 0, mode: str = 'a+b'
     ) -> None:
         self._file_id: int = file_id
-        self.file_name: str = self._get_file_name(dir_name, file_id)
+        self.file_name: str = self.get_file_name(dir_name, file_id)
+        self.mode: str = mode
         self.file: IO[bytes] = open(self.file_name, mode)
         self.write_position: int = Path(self.file_name).stat().st_size
 
@@ -108,8 +110,9 @@ class LogFile:
 
     def read_log_entry(self, offset: int, entry_size: int) -> Entry:
         """Read a LogEntry from log file at offset."""
-        self.file.seek(offset)
-        data: bytes = self.file.read(entry_size)
+        with self.file as f:
+            f.seek(offset)
+            data: bytes = f.read(entry_size)
         entry: Entry = Entry.decode(data)
         return entry
 
@@ -121,6 +124,14 @@ class LogFile:
         # Update last write position so that next record can be written from this point.
         self.write_position += len(data)
 
+    @classmethod
+    def get_file_name(cls, dir_name: Union[str, Path], file_id: int) -> str:
+        return f'{dir_name}/{LOG_FILE_PREFIX}.{file_id}'
+
+    @property
+    def closed(self) -> bool:
+        return self.file.closed
+
     def close(self) -> None:
         """Close the file.
 
@@ -128,14 +139,45 @@ class LogFile:
         to the disk.
 
         """
+        if self.closed:
+            return
+
         self.file.flush()
         os.fsync(self.file.fileno())
         self.file.close()
+
+    def delete(self) -> None:
+        self.file.close()
+        Path(self.file_name).unlink(missing_ok=True)
+
+    def __enter__(self) -> 'LogFile':
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType],
+    ) -> None:
+        if not self.closed:
+            self.close()
 
     def __del__(self) -> None:
         self.close()
         del self.file
 
-    @staticmethod
-    def _get_file_name(dir_name: Union[str, Path], file_id: int) -> str:
-        return f'{dir_name}/{LOG_FILE_PREFIX}.{file_id}'
+    def __iter__(self) -> Generator[Tuple[Entry, int], None, None]:
+        with open(self.file_name, 'rb') as f:
+            offset: int = 0
+            while header_bytes := f.read(HEADER_SIZE):
+                entry_header = Entry.decode_header(header_bytes)
+                payload_size: int = entry_header.key_size + entry_header.value_size
+                payload_bytes: bytes = f.read(payload_size)
+                entry: Entry = Entry.decode(header_bytes + payload_bytes)
+                if entry_header.typ == EntryType.NORMAL.value:
+                    yield entry, offset
+
+                offset += HEADER_SIZE + payload_size
+
+    def __repr__(self) -> str:
+        return f'LogFile<file_name={self.file_name}>'
