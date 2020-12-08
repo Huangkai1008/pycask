@@ -2,6 +2,12 @@
 ## [Unreleased]
 
 
+<a name="v0.5.0"></a>
+## [v0.5.0] - 2020-12-08
+### Features
+- **storage:** support `merge` operation
+
+
 <a name="v0.4.0"></a>
 ## [v0.4.0] - 2020-12-07
 ### Features
@@ -40,7 +46,8 @@
 - init commit
 
 
-[Unreleased]: https://github.com/Huangkai1008/pycask/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Huangkai1008/pycask/compare/v0.5.0...HEAD
+[v0.5.0]: https://github.com/Huangkai1008/pycask/compare/v0.4.0...v0.5.0
 [v0.4.0]: https://github.com/Huangkai1008/pycask/compare/v0.3.0...v0.4.0
 [v0.3.0]: https://github.com/Huangkai1008/pycask/compare/v0.2.1...v0.3.0
 [v0.2.1]: https://github.com/Huangkai1008/pycask/compare/v0.2.0...v0.2.1

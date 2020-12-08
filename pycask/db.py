@@ -13,12 +13,20 @@ __all__ = ['DataStore']
 # The default threshold size is 64MB.
 LOG_FILE_DEFAULT_THRESHOLD_SIZE: Final[int] = 64 << 20
 
+# The default merge interval is 8H.
+LOG_FILE_DEFAULT_MERGE_INTERVAL: Final[int] = 3600 * 8
+
 
 class Options(TypedDict, total=False):
     #: Threshold size of each log file,
     #: active log file will be closed if reach the threshold.
     #: The default value is :const:`LOG_FILE_DEFAULT_THRESHOLD_SIZE`.
     log_file_threshold_size: int
+
+    #: Background thread will merge archived log files periodically according to the interval.
+    #: The interval measured in seconds.
+    #: The default value is :const:`LOG_FILE_MERGE_INTERVAL`.
+    log_file_merge_interval: int
 
 
 class DataStore:
@@ -143,6 +151,12 @@ class DataStore:
     def log_file_threshold_size(self) -> int:
         return self._options.get(
             'log_file_threshold_size', LOG_FILE_DEFAULT_THRESHOLD_SIZE
+        )
+
+    @property
+    def log_file_merge_interval(self) -> int:
+        return self._options.get(
+            'log_file_merge_interval', LOG_FILE_DEFAULT_MERGE_INTERVAL
         )
 
     def _init_data_dir(self) -> None:
